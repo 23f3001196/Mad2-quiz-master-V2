@@ -13,3 +13,4 @@ class LocalDevelopmentConfig(Config):
     SECURITY_PASSWORD_SALT = "37DFRGBH-MAD2-PROJECT-ON-QUIZ-MASTER-2005psswd-check "#helps in hashing password
     WTF_CSRF_ENABLED = False #development false production is true//
     SECURITY_TOKEN_AUTHENTICATION_HEADER = "Authentication-Token"
+    #update
