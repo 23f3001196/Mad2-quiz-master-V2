@@ -150,6 +150,13 @@ quiz_parser.add_argument('remarks')
 
 class QuizApi(Resource):
     
+    @auth_required('token')
+    @roles_required('user')
+    def get(self):
+        quizzes=Quiz.query.all()
+        if quizzes:
+            return [{"id": quiz.id, "title": quiz.title, "chapter_id": quiz.chapter_id,"date_of_quiz":quiz.date_of_quiz.strftime('%Y-%m-%d'),"time_duration":quiz.time_duration,"remarks":quiz.remarks,"chapter_name":quiz.chapter.name} for quiz in quizzes], 200
+        return {"message": "No quizzes found"}, 201
 
     @auth_required('token')
     @roles_required('admin')
@@ -205,7 +212,7 @@ question_parser.add_argument('option1')
 question_parser.add_argument('option2')
 question_parser.add_argument('option3')
 question_parser.add_argument('option4')
-question_parser.add_argument('correct_option')
+question_parser.add_argument('correct_answer')
 question_parser.add_argument('marks')
 
 class QuestionApi(Resource):
@@ -222,7 +229,7 @@ class QuestionApi(Resource):
                 option2=args["option2"],
                 option3=args["option3"],
                 option4=args["option4"],
-                correct_option=args["correct_option"],
+                correct_answer=args["correct_answer"],
                 marks=args["marks"]
             )
             db.session.add(new_question)
@@ -245,7 +252,7 @@ class QuestionApi(Resource):
             question.option2=args["option2"]
             question.option3=args["option3"]
             question.option4=args["option4"]
-            question.correct_option=args["correct_option"]
+            question.correct_answer=args["correct_answer"]
             question.marks=args["marks"]
             db.session.commit()
             return {"message": "Question updated successfully"}, 200
@@ -269,3 +276,4 @@ class QuestionApi(Resource):
 
 # Add the resource to the API
 api.add_resource(QuestionApi, '/api/question', '/api/question/<int:question_id>')
+

@@ -84,7 +84,7 @@ export default {
                                                         <th scope="col">Option 2</th>
                                                         <th scope="col">Option 3</th>
                                                         <th scope="col">Option 4</th>
-                                                        <th scope="col">Correct option</th>
+                                                        <th scope="col">Correct answer</th>
                                                         <th scope="col">Marks</th>
                                                         <th scope="col">Actions</th> 
                                                     </tr> 
@@ -97,7 +97,7 @@ export default {
                                                         <td>{{ question.option2 }}</td> 
                                                         <td>{{ question.option3 }}</td> 
                                                         <td>{{ question.option4}}</td>
-                                                        <td>{{ question.correct_option }}</td> 
+                                                        <td>{{ question.correct_answer }}</td> 
                                                         <td>{{ question.marks }}</td> 
                                                         <td> 
                                                             <button @click="editQuestion(question)" class="btn btn-warning btn-sm">Edit</button> 
@@ -159,7 +159,7 @@ export default {
                 <input v-model="newQuestion.option2" placeholder="Option 2" />
                 <input v-model="newQuestion.option3" placeholder="Option 3" />
                 <input v-model="newQuestion.option4" placeholder="Option 4" />
-                <input v-model="newQuestion.correct_option" placeholder="Correct option" />
+                <input v-model="newQuestion.correct_answer" placeholder="Correct answer" />
                 <input v-model="newQuestion.marks" placeholder="Marks" />
             </template>
             <template v-slot:footer>
@@ -179,7 +179,7 @@ export default {
                 <input v-model="editQuestionData.option2" placeholder="Option 2" />
                 <input v-model="editQuestionData.option3" placeholder="Option 3" />
                 <input v-model="editQuestionData.option4" placeholder="Option 4" />
-                <input v-model="editQuestionData.correct_option" placeholder="Correct option" />
+                <input v-model="editQuestionData.correct_answer" placeholder="Correct answer" />
                 <input v-model="editQuestionData.marks" placeholder="Marks" />
             </template>
             <template v-slot:footer>
@@ -195,8 +195,8 @@ export default {
             quizzes: [],
             newQuiz: { title: '', date_of_quiz: '', time_duration: '', remarks: '',chapter_id:null },
             editQuizData: { id: null, title: '', date_of_quiz: '', time_duration: '', remarks: '' },
-            newQuestion: { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_option: '', marks: '', quiz_id: null },
-            editQuestionData: { id: null, question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_option: '', marks: '' },
+            newQuestion: { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_answer: '', marks: '', quiz_id: null },
+            editQuestionData: { id: null, question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_answer: '', marks: '' },
             vshowAddQuizModal: false,
             showEditQuizModal: false,
             vshowAddQuestionModal: false,
@@ -229,7 +229,7 @@ export default {
             .catch(error => console.error('Error loading user:', error));
         },
         loadQuizzes(chapter_id) {
-            fetch(`/api/quiz?chapter_id=${chapter_id}`, {
+            fetch(`/api/q?chapter_id=${chapter_id}`, {
                 method: 'GET',
                 headers: {
                     "Content-Type": "application/json",
@@ -253,6 +253,14 @@ export default {
                 }));
             })
             .catch(error => console.error('Error loading quizzes:', error));
+        },
+        formatDate(date) {
+            if (!date) return '';
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         },
         loadQuestions(quiz) {
             fetch(`/api/question?quiz_id=${quiz.id}`, {
@@ -298,8 +306,9 @@ export default {
             .then(response => response.json())
             .then(data => {
                 this.quizzes.push(data);
-                this.newQuiz = { title: '', date_of_quiz: '', time_duration: '', remarks: '', chapter_id: null }; // Reset form
                 this.vshowAddQuizModal = false
+                this.newQuiz = { title: '', date_of_quiz: '', time_duration: '', remarks: '', chapter_id: null }; // Reset form
+                
                 this.loadQuizzes(this.$route.params.chapter_id); // Reload quizzes
             })
             .catch(error => console.error('Error adding quiz:', error));
@@ -307,6 +316,7 @@ export default {
         
         editQuiz(quiz) {
             this.editQuizData = { ...quiz }; // Copy quiz data for editing
+            date_of_quiz: this.formatDate(quiz.date_of_quiz)
             this.showEditQuizModal = true; // Open edit modal
         },
         
@@ -360,7 +370,7 @@ export default {
                 if (quiz) {
                     quiz.questions.push(data); // Add the new question to the quiz's questions
                 }
-                this.newQuestion = { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_option: '', marks: '', quiz_id: null }; // Reset form
+                this.newQuestion = { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_answer: '', marks: '', quiz_id: null }; // Reset form
                 this.vshowAddQuestionModal = false; // Close modal
             })
             .catch(error => console.error('Error adding question:', error));

@@ -1,3 +1,6 @@
+import Modal from './modal.js';
+
+
 export default {
     template: `
     <div>
@@ -10,10 +13,10 @@ export default {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link" href="/user">Home <span class="sr-only">(current)</span></a>
+                        <a class="nav-link" >Home <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/scores">Score</a>
+                        <button class="nav-link btn btn-link" @click="showScores">Score</button>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="user_search">Search</a>
@@ -24,7 +27,10 @@ export default {
                 </ul>
             </div>
         </nav>
-        <div class="row border">
+        <div v-if="quizzes.length === 0">
+            <p>No quizzes available.</p>
+        </div>
+        <div class="row border" v-if="quizzes.length>0"> 
             <div class="col-12 border">
                 <h2>Available Quizzes</h2>
                 <table class="table table-striped">
@@ -32,7 +38,7 @@ export default {
                         <tr>
                             <th scope="col">ID</th>
                             <th scope="col">Quiz Title</th>
-                            <th scope="col">Chapter ID</th>
+                            <th scope="col">Chapter name</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -40,7 +46,7 @@ export default {
                         <tr v-for="quiz in quizzes" :key="quiz.id">
                             <td>{{ quiz.id }}</td>
                             <td>{{ quiz.title }}</td>
-                            <td>{{ quiz.chapter_id }}</td>
+                            <td>{{ quiz.chapter_name}}</td>
                             <td>
                                 <button @click="attemptQuiz(quiz)" class="btn btn-primary btn-sm">Attempt</button>
                             </td>
@@ -51,7 +57,7 @@ export default {
         </div>
 
         <!-- Attempt Quiz Modal -->
-        <modal v-if="showAttemptQuizModal" @close="showAttemptQuizModal = false">
+        <Modal v-show="showAttemptQuizModal" @close="showAttemptQuizModal = false">
             <template v-slot:header>
                 <h3>Attempt Quiz: {{ currentQuiz.title }}</h3>
             </template>
@@ -77,9 +83,8 @@ export default {
             </template>
             <template v-slot:footer>
                 <button class="btn btn-primary" @click="submitQuiz">Submit</button>
-                <button class="btn btn-secondary" @click="showAttemptQuizModal = false">Close</button>
             </template>
-        </modal>
+        </Modal>
     </div>
     `,
     data() {
@@ -92,6 +97,10 @@ export default {
             timeRemaining: 0,
             timer: null
         };
+    },
+    components: {
+        Modal,
+
     },
     mounted() {
         this.loadUser ();
@@ -129,13 +138,13 @@ export default {
         attemptQuiz(quiz) {
             this.currentQuiz = quiz;
             this.selectedAnswers = {};
-            this.timeRemaining = 300; // Set timer for 5 minutes (300 seconds)
+            this.timeRemaining = quiz.time_duration; // Set timer based on quiz duration
             this.showAttemptQuizModal = true;
             this.startTimer();
             this.loadQuizQuestions(quiz.id);
         },
         loadQuizQuestions(quizId) {
-            fetch(`/api/quiz/${quizId}`, {
+            fetch(`/api/qu/${quizId}`, {
                 method: 'GET',
                 headers: {
                     "Content-Type": "application/json",
@@ -158,13 +167,17 @@ export default {
                 }
             }, 1000);
         },
+        
         submitQuiz() {
+            
             clearInterval(this.timer);
             const answers = {
                 quiz_id: this.currentQuiz.id,
                 user_id: this.userData.id,
                 answers: this.selectedAnswers
             };
+        
+            console.log(answers)
             fetch('/submit_quiz', {
                 method: 'POST',
                 headers: {
@@ -180,6 +193,9 @@ export default {
                 this.showAttemptQuizModal = false; // Close modal
             })
             .catch(error => console.error('Error submitting quiz:', error));
+        },
+        showScores(){
+            this.$router.push('/score')
         }
     }
 }

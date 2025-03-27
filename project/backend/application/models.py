@@ -68,7 +68,7 @@ class Question(db.Model):
     option2 = db.Column(db.String())
     option3 = db.Column(db.String())
     option4 = db.Column(db.String())
-    correct_option = db.Column(db.String())
+    correct_answer = db.Column(db.String())
     marks=db.Column(db.Integer)
 
 class Score(db.Model):
@@ -77,6 +77,8 @@ class Score(db.Model):
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'),nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     time_stamp_of_attempt = db.Column(db.DateTime)
-    total_scored = db.Column(db.Integer)
+    total_score = db.Column(db.Integer)
+    total_score_quiz=db.Column(db.Integer)
+    no_of_questions = db.Column(db.Integer)
 
 #update

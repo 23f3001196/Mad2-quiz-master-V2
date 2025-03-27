@@ -1,5 +1,5 @@
 from .database import db
-from .models import User
+from .models import *
 from .utils import roles_list
 from app import app
 from .resources import *
@@ -21,6 +21,7 @@ def home():
 def user_home():
     u = current_user
     return jsonify({
+        "id":u.id,
         "username": u.username,
         "email": u.email,
         "roles": roles_list(u.roles)[0]
@@ -114,7 +115,7 @@ def get_chapters():
         return [{"id": chapter.id, "name": chapter.name, "description": chapter.description} for chapter in chapters], 200
     return {"message": "No chapters found"}, 201
 
-@app.route('/api/quiz', methods=['GET'])
+@app.route('/api/q', methods=['GET'])
 @auth_required('token')
 @roles_accepted('admin','user')
 def get_quizzes():
@@ -131,7 +132,96 @@ def get_questions():
     quiz_id=request.args.get('quiz_id')
     questions=Question.query.filter_by(quiz_id=quiz_id).all()
     if questions:
-        return [{"id": question.id, "question_statement": question.question_statement, "quiz_id": question.quiz_id,"option1":question.option1,"option2":question.option2,"option3":question.option3,"option4":question.option4,"correct_option":question.correct_option,"marks":question.marks} for question in questions], 200
+        return [{"id": question.id, "question_statement": question.question_statement, "quiz_id": question.quiz_id,"option1":question.option1,"option2":question.option2,"option3":question.option3,"option4":question.option4,"correct_answer":question.correct_answer,"marks":question.marks} for question in questions], 200
     return {"message": "No questions found"}, 201
     
+
+@app.route('/api/qu/<int:quiz_id>',methods=['GET'])
+@auth_required('token')
+@roles_required('user')
+def get_quizques(quiz_id):
+    quiz = Quiz.query.get(quiz_id)  # Assuming Quiz is your model
+
+    if not quiz:
+        return {"message": "Quiz not found"}, 404  # Return 404 if quiz does not exist
+
+    questions = quiz.questions  
+
+
+    q = [{
+        "id": question.id,
+        "question_statement": question.question_statement,
+        "option1": question.option1,
+        "option2": question.option2,
+        "option3": question.option3,
+        "option4": question.option4,
+        "correct_answer": question.correct_answer,
+        "marks": question.marks
+    } for question in questions]
+
+    return jsonify({"quiz_id": quiz_id, "questions": q}), 200
+
+from flask import request, jsonify
+from flask_restful import Resource
+
+@app.route('/submit_quiz', methods=['POST'])
+@auth_required('token')
+@roles_required('user')
+def submit_quiz():
+    data = request.get_json()  # Get the JSON data from the request
+
+    quiz_id = data.get('quiz_id')
+    user_id = data.get('user_id')
+    answers = data.get('answers')
+
+    if not quiz_id or not user_id or not answers:
+        return jsonify({"message": "Invalid data"}), 400  # Bad request
+
+    
+    quiz = Quiz.query.get(quiz_id)
+    if not quiz:
+        return jsonify({"message": "Quiz not found"}), 404  # Not found
+
+    
+    score = 0
+    total_s=0
+    q=0
+    for question in quiz.questions:
+        total_s+=question.marks
+        q+=1
+        user_answer = answers.get(str(question.id)) 
+        if user_answer is not None:  # Check if the user answer exists
+            if str(user_answer) == str(question.correct_answer):
+                score += question.marks
+
+    s=Score(user_id=user_id,quiz_id=quiz_id,total_score=score,time_stamp_of_attempt=datetime.now(),total_score_quiz=total_s,no_of_questions=q)
+    db.session.add(s)
+    db.session.commit()
+
+    return jsonify({"message": "Quiz submitted successfully", "score": score,"total_score":total_s}), 200  # Success
+
+@app.route('/score', methods=['GET'])
+@auth_required('token')
+@roles_required('user')
+def user_score():
+    user_id = request.args.get('user_id')  
+    if not user_id:
+        return jsonify({"message": "User  ID is required"}), 400  # Bad request if user_id is not provided
+    scores = Score.query.filter_by(user_id=user_id).all()
+
+    if not scores:
+        return jsonify([]), 200  # Return an empty list if no scores are found
+
+    scores_data = []
+    for score in scores:
+        scores_data.append({
+            "id": score.id,
+            "quiz_id": score.quiz_id,
+            "total_score": score.total_score,
+            "time_stamp_of_attempt": score.time_stamp_of_attempt.isoformat(),  # Convert to ISO format for JSON
+            "no_of_questions": score.no_of_questions,
+            "total_score_quiz": score.total_score_quiz
+        })
+
+    return jsonify(scores_data), 200  
 
