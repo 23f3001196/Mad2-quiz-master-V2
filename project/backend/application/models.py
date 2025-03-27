@@ -36,26 +36,27 @@ class UsersRoles(db.Model):
 class Subject(db.Model):
     __tablename__="subject"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(), nullable=False)
+    name = db.Column(db.String(), nullable=False,unique=True)
     description = db.Column(db.Text)
-    chapters = db.relationship('Chapter', backref='subject')
+    chapters = db.relationship('Chapter', backref='subject', cascade='all')
 
 class Chapter(db.Model):
     __tablename__="chapter"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(), nullable=False)
+    name = db.Column(db.String(), nullable=False,unique=True)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'),nullable=False)
     description = db.Column(db.Text)
-    quizzes = db.relationship('Quiz', backref='chapter')
+    quizzes = db.relationship('Quiz', backref='chapter', cascade='all')
 
 class Quiz(db.Model):
     __tablename__="quiz"
     id = db.Column(db.Integer, primary_key=True)
+    title=db.Column(db.String(), nullable=False,unique=True)
     chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'),nullable=False)
     date_of_quiz = db.Column(db.DateTime)
     time_duration = db.Column(db.String())#check
     remarks = db.Column(db.String())
-    questions = db.relationship('Question', backref='quiz')
+    questions = db.relationship('Question', backref='quiz', cascade='all')
 
 
 class Question(db.Model):
@@ -68,6 +69,7 @@ class Question(db.Model):
     option3 = db.Column(db.String())
     option4 = db.Column(db.String())
     correct_option = db.Column(db.String())
+    marks=db.Column(db.Integer)
 
 class Score(db.Model):
     __tablename__="score"
