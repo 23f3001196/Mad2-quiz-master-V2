@@ -7,7 +7,13 @@ from flask import jsonify,request,render_template,redirect,url_for
 from flask_security import auth_required,roles_required,roles_accepted,current_user,login_user, logout_user, login_required,hash_password
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+from sqlalchemy import or_
+from sqlalchemy import func
 
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 
 
 
@@ -46,6 +52,46 @@ def admin_quiz(chapter_id):
         "chapter_id": chapter_id
         # You can add more data related to the chapter if needed
     })
+
+@app.route('/admin/search', methods=["POST"])
+@auth_required('token')
+@roles_required('admin')
+def admin_search():
+   
+
+    results=[]
+        
+    search_by = request.json.get('Search_by')
+    search_text = request.json.get('text')
+
+    if search_by == 'subject':
+        results = Subject.query.filter(
+            Subject.name.contains(search_text)).all()
+    elif search_by == 'users':
+        results = User.query.filter(or_(
+            User.username.contains(search_text),
+            User.full_name.contains(search_text),
+            User.qualification.contains(search_text),
+            )).all()
+    elif search_by == 'quiz':
+        results = Quiz.query.join(Chapter).filter(or_(
+            Quiz.title.contains(search_text),
+            Quiz.date_of_quiz.contains(search_text),#check
+            Quiz.time_duration.contains(search_text),
+            Chapter.name.contains(search_text)
+        )).all()
+
+    results_data = []
+    for result in results:
+        result_dict = {key: value for key, value in result.__dict__.items() if not key.startswith('_')}
+        results_data.append(result_dict)
+    return jsonify({
+        'results': results_data,
+        'search_by': search_by,
+        'search_text': search_text
+    }), 200
+    
+    
 
 @app.route('/userlogin', methods=['POST'])
 def user_login():
@@ -96,6 +142,38 @@ def create_user():
     }), 400
 
 
+@app.route('/admin/summary')
+@auth_required('token')
+@roles_required('admin')
+def admin_summary():
+   
+    top_quizzes = Quiz.query.join(Score).group_by(Quiz.id).order_by(func.avg(Score.total_score).desc()).all()#.limit(5)to get top 5
+
+    # Get the number of users who have attempted each quiz
+    quiz_attempts = []
+    average_scores = []
+    for quiz in top_quizzes:
+        attempts = Score.query.filter_by(quiz_id=quiz.id).count()
+        average_score = db.session.query(func.avg(Score.total_score)).filter_by(quiz_id=quiz.id).scalar()
+        quiz_attempts.append(attempts)
+        average_scores.append(average_score if average_score is not None else 0)  # Handle None case
+
+    # Create a bar chart to display the top quizzes and their average scores
+    labels = [quiz.title for quiz in top_quizzes]
+    plt.clf()
+    plt.bar(labels, average_scores)
+    plt.title('Top Quizzes by Average Score')
+    plt.xlabel('Quiz Title')
+    plt.ylabel('Average Score')
+    plt.savefig('frontend/source/admin_top_quizzes.png')
+
+    # Create a pie chart to display the distribution of quiz attempts
+    plt.clf()
+    plt.pie(quiz_attempts, labels=labels, autopct='%1.1f%%')
+    plt.title('Quiz Attempts Distribution')
+    plt.savefig('frontend/source/admin_quiz_attempts.png')
+
+    return jsonify({"message":"successful"}),200
 
 
 @app.route('/user')
@@ -225,3 +303,106 @@ def user_score():
 
     return jsonify(scores_data), 200  
 
+
+@app.route('/user/search', methods=["POST"])
+@auth_required('token')
+@roles_required('user')
+def user_search():
+    results = []
+        
+    search_by = request.json.get('Search_by')
+    search_text = request.json.get('text')
+
+    if search_by == 'subject':
+        results = Subject.query.filter(
+            Subject.name.contains(search_text)).all()
+    elif search_by == 'quiz':
+        # Attempt to parse the search_text as a date
+        try:
+            search_date = datetime.strptime(search_text, '%Y-%m-%d')  # Adjust format as needed
+            results = Quiz.query.join(Chapter).filter(or_(
+                Quiz.title.contains(search_text),
+                Quiz.date_of_quiz == search_date,  # Compare with parsed date
+                Quiz.time_duration.contains(search_text),
+                Chapter.name.contains(search_text)
+            )).all()
+        except ValueError:
+            # If parsing fails, treat search_text as a string for title and time_duration
+            results = Quiz.query.join(Chapter).filter(or_(
+                Quiz.title.contains(search_text),
+                Quiz.time_duration.contains(search_text),
+                Chapter.name.contains(search_text)
+            )).all()
+
+    elif search_by == 'scores':
+        try:
+            score_value = int(search_text)  # Convert search_text to int for score comparison
+            results = Quiz.query.join(Score).join(Chapter).filter(or_(
+                Score.total_score == score_value,  # Corrected this line
+                Quiz.time_duration.contains(search_text),
+                Chapter.name.contains(search_text)
+            )).all()
+        except ValueError:
+            results = Quiz.query.join(Score).join(Chapter).filter(or_(
+                Quiz.time_duration.contains(search_text),
+                Chapter.name.contains(search_text)
+            )).all()
+
+    # Prepare results for JSON response
+    results_data = []
+    for result in results:
+        result_dict = {key: value for key, value in result.__dict__.items() if not key.startswith('_')}
+        # Include chapter name if the result is a quiz
+        if hasattr(result, 'chapter'):
+            result_dict['chapter_name'] = result.chapter.name  # Assuming the relationship is set up
+        results_data.append(result_dict)
+
+    return jsonify({
+        'results': results_data,
+        'search_by': search_by,
+        'search_text': search_text
+    }), 200
+
+@app.route('/user/summary/<int:user_id>')
+@auth_required('token')
+def user_summary(user_id):
+    
+    user_scores=db.session.query(Score, Quiz).join(Quiz).filter(Score.user_id == user_id).all()
+
+    # Lists to store the data for the charts
+    quiz_titles = []
+    user_scores_list = []
+    quiz_attempts = []
+
+    # Process the user scores for each quiz
+    for score, quiz in user_scores:
+        quiz_titles.append(quiz.title)
+        user_scores_list.append(score.total_score)
+        attempts = Score.query.filter_by(quiz_id=quiz.id).count()
+        quiz_attempts.append(attempts)
+
+    # Create a bar chart for the user's quiz performance
+    plt.clf()
+    plt.bar(quiz_titles, user_scores_list, color='blue')
+    plt.title(f'User Performance: {user_id}')
+    plt.xlabel('Quiz Title')
+    plt.ylabel('Total Score')
+    
+    plt.tight_layout()  # To make sure labels fit well in the plot
+
+    # Save the user's performance chart as an image
+    
+    plt.savefig('frontend/source/user_performance.png')
+
+    # Create a pie chart for the distribution of quiz attempts
+    plt.clf()
+    plt.pie(quiz_attempts, labels=quiz_titles)
+    plt.title(f'Quiz Attempt Distribution: {user_id}')
+    plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+    plt.savefig('frontend/source/user_quiz.png')
+
+    return jsonify({
+        "message": "Charts generated successfully",
+    }), 200
+    

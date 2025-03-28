@@ -19,10 +19,10 @@ export default {
                         <button class="nav-link btn btn-link" @click="showScores">Score</button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="user_search">Search</a>
+                        <button class="nav-link btn btn-link" @click="showSearch">Search</button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="user_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
@@ -196,6 +196,14 @@ export default {
         },
         showScores(){
             this.$router.push('/score')
+        },
+        showSearch(){
+            this.$router.push('/user/search')
+        },
+        showSummary(){
+            this.$router.push(`/user/summary/${this.userData.id}`)
         }
+
+        
     }
 }

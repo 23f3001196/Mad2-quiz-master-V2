@@ -18,10 +18,10 @@ export default {
                         <a class="nav-link" >Quiz</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="admin_search">Search</a>
+                        <button class="nav-link btn btn-link" @click="showSearch">Search</button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="admin_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
@@ -376,6 +376,12 @@ export default {
         },
         gotoquiz(chapter_id) {
             this.$router.push(`/quiz/${chapter_id}`);
+        },
+        showSearch(){
+            this.$router.push(`/admin/search`)
+        },
+        showSummary(){
+            this.$router.push(`/admin/summary`)
         }
     } 
 }
