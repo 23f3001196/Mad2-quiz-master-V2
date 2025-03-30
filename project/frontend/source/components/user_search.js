@@ -4,14 +4,14 @@ export default{
     <div>
         <h2 class="my-2">Welcome, {{ userData.username }}!</h2>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" >Admin Search</a>
+            <a class="navbar-brand" >User Search</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link" >Home </a>
+                        <button class="nav-link btn btn-link" @click="showDash">Home</button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link btn btn-link" @click="showScores">Score</button>
@@ -20,17 +20,16 @@ export default{
                         <a class="nav-link" >Search<span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="user_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
         </nav>
         <div>
-            <h3>Admin Search</h3>
+            <h3>User Search</h3>
             <input type="text" v-model="searchText" placeholder="Search..." />
             <select v-model="searchBy">
                 <option value="subject">Subject</option>
-                <option value="scores">scores</option>
                 <option value="quiz">Quiz</option>
             </select>
             <button @click="performSearch">Search</button>
@@ -43,9 +42,7 @@ export default{
                 <thead>
                     <tr>
                         <th v-if="searchBy === 'subject'">Subject Name</th>
-                        <th v-if="searchBy === 'scores'">Quiz Title</th>
-                        <th v-if="searchBy === 'scores'">Chapter Name</th> <!-- Corrected header -->
-                        <th v-if="searchBy === 'scores'">Scores</th>
+                        
                         <th v-if="searchBy === 'quiz'">Quiz Title</th>
                         <th v-if="searchBy === 'quiz'">Chapter Name</th> <!-- Corrected header -->
                         <th v-if="searchBy === 'quiz'">Date of quiz</th> 
@@ -55,9 +52,7 @@ export default{
                 <tbody>
                     <tr v-for="result in results" :key="result.id">
                         <td v-if="searchBy === 'subject'">{{ result.name }}</td>
-                        <td v-if="searchBy === 'scores'">{{ result.title }}</td>
-                        <td v-if="searchBy === 'scores'">{{ result.chapter_name }}</td> <!-- Corrected property -->
-                        <td v-if="searchBy === 'scores'">{{ result.scores_total_score }}</td>
+                        
                         <td v-if="searchBy === 'quiz'">{{ result.title }}</td>
                         <td v-if="searchBy === 'quiz'">{{ result.chapter_name }}</td> <!-- Use chapter_name -->
                         <td v-if="searchBy === 'quiz'">{{ result.date_of_quiz }}</td>
@@ -123,6 +118,12 @@ export default{
         },
         showScores(){
             this.$router.push('/score')
+        },
+        showDash(){
+            this.$router.push('/user')
+        },
+        showSummary(){
+            this.$router.push(`/user/summary/${this.userData.id}`)
         }
     }
 }

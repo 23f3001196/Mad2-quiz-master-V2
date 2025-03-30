@@ -10,16 +10,16 @@ export default {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link">Home</a>
+                        <button class="nav-link btn btn-link" @click="showDash">Home</button>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" >Score <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="user_search">Search</a>
+                        <button class="nav-link btn btn-link" @click="showSearch">Search</button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="user_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
@@ -56,7 +56,7 @@ export default {
     },
     mounted() {
         this.loadUser ();
-        this.loadUserScores(); // Fetch user scores when the component is mounted
+        this.loadUser_Scores(); // Fetch user scores when the component is mounted
     },
     methods: {
         loadUser () {
@@ -92,6 +92,16 @@ export default {
                 this.userScores = data; // Assuming the API returns an array of scores
             })
             .catch(error => console.error('Error loading user scores:', error));
+        },showDash() {
+            this.$router.push('/user'); // Navigate to the scores page
+        },
+        
+        showSearch() {
+            this.$router.push('/user/search'); // Navigate to the scores page
+        },
+        
+        showSummary() {
+            this.$router.push(`/user/summary/${this.userData.id}`); // Navigate to the search page
         }
     }
 }

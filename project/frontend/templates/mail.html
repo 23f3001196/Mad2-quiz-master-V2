@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions for this Month</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <div class="row" style="text-align: center;">
+            <img src="http://localhost:5000/source/quizmaster.jpg" alt="company_details" style="width: 100%; max-width: 500px;">
+        </div>
+        <div class="row">
+            <h1 class="text-center mt-2">Monthly score Details</h1>
+            <p class="fs-3">Hello {{data['username']}}</p>
+            <p class="fs-5">This is your montly score card</p>
+        </div>
+        <div class="row">
+            <table class="table table-striped mx-2">
+                <thead>
+                    <tr>
+                        <th scope="col">Sr No</th>
+                        <th scope="col">Quiz Id</th>
+                        <th scope="col">Chapter Id</th>
+                        <th scope="col">Chapter Name</th>
+                        <th scope="col">Total Score</th>
+                        <th scope="col">No of questions</th>
+                        <th scope="col">Total quiz score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set totsc = data['user_scores'] | map(attribute='total_score') | map('int') | sum %}
+                    {% set totqusc = data['user_scores'] | map(attribute='total_score_quiz') | map('int') | sum  %}
+                    {% for i in data['user_scores'] %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td>{{ i['quiz_id'] }}</td>
+                        <td>{{ i['chapter_id'] }}</td>
+                        <td>{{ i['chapter_name'] }}</td>
+                        <td>{{ i['total_score'] }}</td>
+                        <td>{{ i['no_of_questions'] }}</td>
+                        <td>{{ i['total_score_quiz'] }}</td>  
+                       
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td colspan="3" class="text-end">Total</td>
+                        <td> {{totsc}} </td>
+                        <td colspan="2" class="text-end">Total score of quiz</td>
+                        <td> {{totqusc}} </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+            <p class="fs-5">
+                thank you, Quiz,master 
+            </p>
+        </div>
+        <div class="row">
+            <div class="col-10"></div>
+            <div class="col-2">
+                <img src="http://localhost:5000/source/stamp.jpeg" alt="Company stamp" style="width: 150px;">
+            </div>
+        </div>
+        <div class="row">
+            <p class="text-center mt-2">
+                Quiz master 
+            </p>
+        </div>
+    </div>
+    
+</body>
+</html>

@@ -3,7 +3,7 @@ from flask import request
 from .models import *
 from .utils import roles_list
 from flask_security import auth_required,roles_required,roles_accepted,current_user
-from datetime import datetime
+import datetime
 api=Api()
 
 
@@ -153,9 +153,16 @@ class QuizApi(Resource):
     @auth_required('token')
     @roles_required('user')
     def get(self):
-        quizzes=Quiz.query.all()
-        if quizzes:
-            return [{"id": quiz.id, "title": quiz.title, "chapter_id": quiz.chapter_id,"date_of_quiz":quiz.date_of_quiz.strftime('%Y-%m-%d'),"time_duration":quiz.time_duration,"remarks":quiz.remarks,"chapter_name":quiz.chapter.name} for quiz in quizzes], 200
+        quizzes = Quiz.query.all()
+        today = datetime.datetime.today().date()  # Get today's date without time
+        quiz_data = []  # Initialize an empty list to hold today's quizzes
+        
+        for quiz in quizzes:
+            d = quiz.date_of_quiz.date()  # Get the date part of the quiz date
+            if d == today:
+                quiz_data.append({"id": quiz.id,"title": quiz.title,"chapter_id": quiz.chapter_id,"date_of_quiz": d.strftime('%Y-%m-%d'),"time_duration": quiz.time_duration,"remarks": quiz.remarks,"chapter_name": quiz.chapter.name})
+        if quiz_data:  
+            return quiz_data, 200
         return {"message": "No quizzes found"}, 201
 
     @auth_required('token')
@@ -165,7 +172,7 @@ class QuizApi(Resource):
         try:
 
             d=args["date_of_quiz"]
-            date=datetime.strptime(d, "%Y-%m-%d").date()
+            date=datetime.datetime.strptime(d, "%Y-%m-%d").date()
             new_quiz = Quiz(title=args["title"], chapter_id=args["chapter_id"],date_of_quiz=date,time_duration=args["time_duration"],remarks=args["remarks"])
             db.session.add(new_quiz)
             db.session.commit()
@@ -182,7 +189,7 @@ class QuizApi(Resource):
             return {"message": "Quiz not found"}, 404
         try:
             quiz.title = args["title"]
-            quiz.date_of_quiz=datetime.strptime(args["date_of_quiz"], "%Y-%m-%d").date()
+            quiz.date_of_quiz=datetime.datetime.strptime(args["date_of_quiz"], "%Y-%m-%d").date()
             quiz.time_duration=args["time_duration"]
             quiz.remarks=args["remarks"]
             db.session.commit()

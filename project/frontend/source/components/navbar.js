@@ -22,6 +22,11 @@ export default {
             username: '',
         }
     },
+    watch: {
+        '$route': function() { // Watch route changes
+            this.isLoggedIn = !!localStorage.getItem("auth_token");
+        }
+    },
     created() {
         // Check if the user is logged in based on the presence of an auth token
         this.isLoggedIn = !!localStorage.getItem('auth_token');

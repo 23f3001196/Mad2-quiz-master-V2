@@ -1,4 +1,5 @@
 from .database import db
+from datetime import datetime
 from flask_security import UserMixin,RoleMixin
 
 
@@ -14,8 +15,10 @@ class User(db.Model,UserMixin):
     full_name = db.Column(db.String())
     qualification = db.Column(db.String())
     dob = db.Column(db.Date)
+    last_reminder_time = db.Column(db.DateTime, default=datetime.now)
+
     roles = db.relationship('Role', backref='bearer',secondary='users_role')
-    Scores = db.relationship('Score', backref='user')
+    scores = db.relationship('Score', backref='user')
     
 
 # Role Model

@@ -10,7 +10,7 @@ export default {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link">Home</a>
+                        <button class="nav-link btn btn-link" @click="showDash">Home</button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link btn btn-link" @click="showScores">Score</button>
@@ -26,22 +26,23 @@ export default {
         </nav>
         <div class="summary-images">
             <h3>Summary Charts</h3>
-            <img src="../source/user_performance.png" alt="User Performance" class="img-fluid"  />
-            <img src="../source/user_quiz.png" alt="Quiz Attempts" class="img-fluid"  />
+            <img :src="performanceImage" alt="User  Performance" class="img-fluid" />
+            <img :src="quizImage" alt="Quiz Attempts" class="img-fluid" />
         </div>
     </div>
     `,
     data() {
         return {
-            userData: {},          
+            userData: {},
+            performanceImage: '', // Reactive property for performance image
+            quizImage: '' // Reactive property for quiz image
         };
     },
     mounted() {
-        this.loadUser();  // Load user data on component mount
-        this.UserSummary();  // Load user summary after user data is available
+        this.loadUser ();  // Load user data on component mount
     },
     methods: {
-        loadUser() {
+        loadUser () {
             fetch('/home', {
                 method: 'GET',
                 headers: {
@@ -59,9 +60,8 @@ export default {
         
         async UserSummary() {
             try {
-                // Fetch the user summary with the user ID in the URL or query parameter
                 const response = await fetch(`/user/summary/${this.userData.id}`, {
-                    method: 'GET',  // Use GET instead of POST for fetching data
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authentication-Token': localStorage.getItem('auth_token')
@@ -73,13 +73,21 @@ export default {
                 }
     
                 const data = await response.json();
+                
+                // Assuming data contains the URLs for the images
+                this.performanceImage = `../source/user_performance.png?t=${new Date().getTime()}`; // Cache busting
+                this.quizImage = `../source/user_quiz.png?t=${new Date().getTime()}`; // Cache busting
+
             } catch (error) {
                 console.error('Error fetching user summary:', error);
             }
         },
+        showDash() {
+            this.$router.push('/user'); // Navigate to the scores page
+        },
         
         showScores() {
-            this.$router.push('/scores'); // Navigate to the scores page
+            this.$router.push('/score'); // Navigate to the scores page
         },
         
         showSearch() {

@@ -27,6 +27,11 @@ export default {
             </div>
         </nav>
         <div class="row border">
+            <div class="text-end">
+                <button class="btn btn-secondary" @click="csvDownload"> Download csv report </button>
+            </div>
+        </div>
+        <div class="row border">
             <div class="text-end my-2">
                 <button @click="showAddSubjectModal = true" class="btn btn-primary">Add New Subject</button>
             </div>
@@ -128,7 +133,7 @@ export default {
             </template>
             <template v-slot:footer>
                 <button class="btn btn-primary" @click="addChapter">Add</button>
-                <button class="btn btn-secondary" @click="showAddChapterModal = false">Close</button>
+                <button class="btn btn-secondary" @click="vshowAddChapterModal = false">Close</button>
             </template>
         </Modal>
 
@@ -271,6 +276,7 @@ export default {
                 this.subjects.push(data);
                 this.newSubject = { name: '', description: '' };
                 this.showAddSubjectModal=false// Reset form
+                this.loadSubjects()
             })
             .catch(error => console.error('Error adding subject:', error));
         },
@@ -292,6 +298,7 @@ export default {
                 const index = this.subjects.findIndex(subject => subject.id === data.id);
                 this.subjects.splice(index, 1, data); // Update the subject in the list
                 this.showEditSubjectModal = false; // Close modal
+                this.loadSubjects()
             })
             .catch(error => console.error('Error updating subject:', error));
         },
@@ -329,6 +336,7 @@ export default {
                 }
                 this.vshowAddChapterModal = false; // Close modal
                 this.newChapter = { name: '', description: '', subject_id: null }; // Reset form
+                this.loadChapters(subject)
             })
             .catch(error => console.error('Error adding chapter:', error));
         },
@@ -345,16 +353,28 @@ export default {
                 },
                 body: JSON.stringify(this.editChapterData)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update chapter');
+                }
+                return response.json();
+            })
             .then(data => {
-                const subject = this.subjects.find(s => s.chapters.some(ch => ch.id === data.id));
+                // Check if the subject exists and has chapters
+                const subject = this.subjects.find(s => s.chapters && s.chapters.some(ch => ch.id === data.id));
                 if (subject) {
                     const index = subject.chapters.findIndex(ch => ch.id === data.id);
                     subject.chapters.splice(index, 1, data); // Update the chapter in the list
                 }
-                this.showEditChapterModal = false; // Close modal
+        
+                console.log('Chapter updated successfully:', data); // Debugging statement
+                this.showEditChapterModal = false; // Close modal after successful update
+                this.loadSubjects()
             })
-            .catch(error => console.error('Error updating chapter:', error));
+            .catch(error => {
+                console.error('Error updating chapter:', error);
+                // Optionally show an error message to the user
+            });
         },
         deleteChapter(id) {
             fetch(`/api/chapter/${id}`, {
@@ -373,6 +393,15 @@ export default {
                 }
             })
             .catch(error => console.error('Error deleting chapter:', error));
+        },
+        csvDownload(){
+            fetch('/export')
+            .then(response=> response.json())
+            .then(data=>{
+                window.location.href=`/csv_result/${data.id}`
+
+            })
+
         },
         gotoquiz(chapter_id) {
             this.$router.push(`/quiz/${chapter_id}`);

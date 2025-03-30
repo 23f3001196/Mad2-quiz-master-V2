@@ -12,16 +12,16 @@ export default {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link">Home </a>
+                        <button class="nav-link btn btn-link" @click="showDash">Home</button>   
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" >quiz <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="admin_search">Search</a>
+                        <button class="nav-link btn btn-link" @click="showSearch">Search</button>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="admin_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
@@ -117,7 +117,7 @@ export default {
         </div>
 
         <!-- Add Quiz Modal -->
-        <Modal v-show="vshowAddQuizModal">
+        <Modal v-if="vshowAddQuizModal">
             <template v-slot:header>
                 <h3>Add Quiz</h3>
             </template>
@@ -132,7 +132,7 @@ export default {
         </Modal>
 
         <!-- Edit Quiz Modal -->
-        <Modal v-show="showEditQuizModal">
+        <Modal v-if="showEditQuizModal">
             <template v-slot:header>
                 <h3>Edit Quiz</h3>
             </template>
@@ -149,7 +149,7 @@ export default {
         </Modal>
 
         <!-- Add Question Modal -->
-        <Modal v-show="vshowAddQuestionModal">
+        <Modal v-if="vshowAddQuestionModal">
             <template v-slot:header>
                 <h3>Add Question</h3>
             </template>
@@ -169,7 +169,7 @@ export default {
         </Modal>
 
         <!-- Edit Question Modal -->
-        <Modal v-show="showEditQuestionModal">
+        <Modal v-if="showEditQuestionModal">
             <template v-slot:header>
                 <h3>Edit Question</h3>
             </template>
@@ -303,20 +303,28 @@ export default {
                 },
                 body: JSON.stringify(this.newQuiz)
             })
-            .then(response => response.json())
-            .then(data => {
-                this.quizzes.push(data);
-                this.vshowAddQuizModal = false
-                this.newQuiz = { title: '', date_of_quiz: '', time_duration: '', remarks: '', chapter_id: null }; // Reset form
-                
-                this.loadQuizzes(this.$route.params.chapter_id); // Reload quizzes
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add quiz');
+                }
+                return response.json();
             })
-            .catch(error => console.error('Error adding quiz:', error));
+            .then(data => {
+                this.quizzes.push(data); // Add the new quiz to the quizzes array
+                this.newQuiz = { title: '', date_of_quiz: '', time_duration: '', remarks: '', chapter_id: null }; // Reset form
+                this.vshowAddQuizModal = false; // Close the modal
+               
+                // Optionally reload quizzes if needed
+                this.loadQuizzes(this.$route.params.chapter_id); 
+            })
+            .catch(error => {
+                console.error('Error adding quiz:', error);
+                // Optionally show an error message to the user here
+            });
         },
-        
+    
         editQuiz(quiz) {
             this.editQuizData = { ...quiz }; // Copy quiz data for editing
-            date_of_quiz: this.formatDate(quiz.date_of_quiz)
             this.showEditQuizModal = true; // Open edit modal
         },
         
@@ -370,8 +378,12 @@ export default {
                 if (quiz) {
                     quiz.questions.push(data); // Add the new question to the quiz's questions
                 }
-                this.newQuestion = { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_answer: '', marks: '', quiz_id: null }; // Reset form
                 this.vshowAddQuestionModal = false; // Close modal
+                this.newQuestion = { question_statement: '', option1: '', option2: '', option3: '', option4: '', correct_answer: '', marks: '', quiz_id: null }; // Reset form
+                this.loadQuestions(quiz); 
+                
+               
+
             })
             .catch(error => console.error('Error adding question:', error));
         },
@@ -396,6 +408,8 @@ export default {
                     quiz.questions.splice(index, 1, data); // Update the question in the list
                 }
                 this.showEditQuestionModal = false; // Close modal
+                this.loadQuizzes(this.$route.params.chapter_id); 
+                
             })
             .catch(error => console.error('Error updating question:', error));
         },
@@ -416,6 +430,17 @@ export default {
                 }
             })
             .catch(error => console.error('Error deleting question:', error));
+        },
+        showDash() {
+            this.$router.push('/admin')
+    
+        },
+        showSearch() {
+            this.$router.push('/admin/search')
+    
+        },
+        showSummary(){
+            this.$router.push('/admin/summary')
         }
     }
 }

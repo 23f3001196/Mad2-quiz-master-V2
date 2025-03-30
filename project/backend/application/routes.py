@@ -3,12 +3,15 @@ from .models import *
 from .utils import roles_list
 from app import app
 from .resources import *
-from flask import jsonify,request,render_template,redirect,url_for
+from flask import jsonify,request,render_template,redirect,url_for,send_from_directory
 from flask_security import auth_required,roles_required,roles_accepted,current_user,login_user, logout_user, login_required,hash_password
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+
 from sqlalchemy import or_
 from sqlalchemy import func
+from .tasks import *
+from celery.result import AsyncResult
 
 import matplotlib
 matplotlib.use('Agg')
@@ -130,7 +133,7 @@ def logout():
 def create_user():
     r = request.get_json()
     if not app.security.datastore.find_user(email = r["email"]):
-        dob = datetime.strptime(r["dateofbirth"], "%Y-%m-%d").date()
+        dob = datetime.datetime.strptime(r["dateofbirth"], "%Y-%m-%d").date()
         app.security.datastore.create_user(email = r["email"],username = r["username"],password =generate_password_hash(r["password"]),full_name=r["fullname"],qualification=r["qualification"],dob=dob,roles = ['user'])
         db.session.commit()
         return jsonify({
@@ -212,7 +215,7 @@ def get_questions():
     if questions:
         return [{"id": question.id, "question_statement": question.question_statement, "quiz_id": question.quiz_id,"option1":question.option1,"option2":question.option2,"option3":question.option3,"option4":question.option4,"correct_answer":question.correct_answer,"marks":question.marks} for question in questions], 200
     return {"message": "No questions found"}, 201
-    
+
 
 @app.route('/api/qu/<int:quiz_id>',methods=['GET'])
 @auth_required('token')
@@ -259,6 +262,7 @@ def submit_quiz():
     quiz = Quiz.query.get(quiz_id)
     if not quiz:
         return jsonify({"message": "Quiz not found"}), 404  # Not found
+    
 
     
     score = 0
@@ -272,9 +276,10 @@ def submit_quiz():
             if str(user_answer) == str(question.correct_answer):
                 score += question.marks
 
-    s=Score(user_id=user_id,quiz_id=quiz_id,total_score=score,time_stamp_of_attempt=datetime.now(),total_score_quiz=total_s,no_of_questions=q)
+    s=Score(user_id=user_id,quiz_id=quiz_id,total_score=score,time_stamp_of_attempt=datetime.datetime.now(),total_score_quiz=total_s,no_of_questions=q)
     db.session.add(s)
     db.session.commit()
+    daily_update_score.delay(user_id, quiz_id)
 
     return jsonify({"message": "Quiz submitted successfully", "score": score,"total_score":total_s}), 200  # Success
 
@@ -303,66 +308,43 @@ def user_score():
 
     return jsonify(scores_data), 200  
 
-
-@app.route('/user/search', methods=["POST"])
-@auth_required('token')
-@roles_required('user')
-def user_search():
+@app.route('/user/search', methods=["POST"]) 
+@auth_required('token') 
+@roles_required('user') 
+def user_search(): 
     results = []
-        
+
     search_by = request.json.get('Search_by')
     search_text = request.json.get('text')
 
     if search_by == 'subject':
         results = Subject.query.filter(
             Subject.name.contains(search_text)).all()
+        
     elif search_by == 'quiz':
         # Attempt to parse the search_text as a date
-        try:
-            search_date = datetime.strptime(search_text, '%Y-%m-%d')  # Adjust format as needed
-            results = Quiz.query.join(Chapter).filter(or_(
-                Quiz.title.contains(search_text),
-                Quiz.date_of_quiz == search_date,  # Compare with parsed date
-                Quiz.time_duration.contains(search_text),
-                Chapter.name.contains(search_text)
+        results = Quiz.query.join(Chapter).filter(or_(
+            Quiz.title.contains(search_text),
+            Quiz.time_duration.contains(search_text),
+            Chapter.name.contains(search_text)
             )).all()
-        except ValueError:
-            # If parsing fails, treat search_text as a string for title and time_duration
-            results = Quiz.query.join(Chapter).filter(or_(
-                Quiz.title.contains(search_text),
-                Quiz.time_duration.contains(search_text),
-                Chapter.name.contains(search_text)
-            )).all()
-
-    elif search_by == 'scores':
-        try:
-            score_value = int(search_text)  # Convert search_text to int for score comparison
-            results = Quiz.query.join(Score).join(Chapter).filter(or_(
-                Score.total_score == score_value,  # Corrected this line
-                Quiz.time_duration.contains(search_text),
-                Chapter.name.contains(search_text)
-            )).all()
-        except ValueError:
-            results = Quiz.query.join(Score).join(Chapter).filter(or_(
-                Quiz.time_duration.contains(search_text),
-                Chapter.name.contains(search_text)
-            )).all()
+    
 
     # Prepare results for JSON response
     results_data = []
     for result in results:
         result_dict = {key: value for key, value in result.__dict__.items() if not key.startswith('_')}
-        # Include chapter name if the result is a quiz
         if hasattr(result, 'chapter'):
-            result_dict['chapter_name'] = result.chapter.name  # Assuming the relationship is set up
+            result_dict['chapter_name'] = result.chapter.name
+        
+
         results_data.append(result_dict)
 
     return jsonify({
         'results': results_data,
         'search_by': search_by,
         'search_text': search_text
-    }), 200
-
+    }), 200 
 @app.route('/user/summary/<int:user_id>')
 @auth_required('token')
 def user_summary(user_id):
@@ -388,10 +370,7 @@ def user_summary(user_id):
     plt.xlabel('Quiz Title')
     plt.ylabel('Total Score')
     
-    plt.tight_layout()  # To make sure labels fit well in the plot
-
-    # Save the user's performance chart as an image
-    
+    plt.tight_layout() #to make sure the labels fit
     plt.savefig('frontend/source/user_performance.png')
 
     # Create a pie chart for the distribution of quiz attempts
@@ -406,3 +385,27 @@ def user_summary(user_id):
         "message": "Charts generated successfully",
     }), 200
     
+#trigger
+@app.route('/export')#thsi manually triggers the job
+def export_csv():
+    
+    r=csv_report.delay()#async object delay so that celery
+    return jsonify({
+        "id" : r.id,
+        "result" : r.result
+    })
+
+@app.route('/csv_result/<id>')#just created to test staus the job
+def csv_result(id):
+    r=AsyncResult(id)
+    if r is None or r.result is None:
+        return "File not found", 404
+    return send_from_directory('../frontend/source', r.result )
+
+
+@app.route('/mail')
+def send_reports():
+    res = monthly_report.delay()
+    return {
+        "result": res.result
+    }

@@ -11,16 +11,16 @@ export default{
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item active">
-                        <a class="nav-link" >Home </a>
+                        <button class="nav-link btn btn-link" @click="showDash">Home</button>
                     </li>
                     <li class="nav-item">
-                         <a class="nav-link" >Quiz </a>
+                        <a class="nav-link" >Quiz </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" >Search<span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="admin_summary">Summary</a>
+                        <button class="nav-link btn btn-link" @click="showSummary">Summary</button>
                     </li>
                 </ul>
             </div>
@@ -117,8 +117,11 @@ export default{
                 console.error('Error during search:', error);
             }
         },
-        showScores() {
-            this.$router.push('/score');
+        showDash() {
+            this.$router.push('/admin');
+        },
+        showSummary() {
+            this.$router.push('/admin/summary');
         }
     }
 }
