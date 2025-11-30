@@ -15,10 +15,17 @@ Jinja2 template only for basic email and email related
 
 API:
 api/subject- for get and post methods for subject
+
 /api/subject/<int:id>-for put and delete methods for subject
+
 /api/chapter- for get and post methods for chapter
+
 /api/chapter/<int:id>-for put and delete methods for chapter
+
 /api/quiz- for get and post methods for quiz
+
 /api/quiz/<int:id>-for put and delete methods for quiz
+
 /api/question - for get and post methods for question
+
 /api/question /<int:id>-for put and delete methods for question
