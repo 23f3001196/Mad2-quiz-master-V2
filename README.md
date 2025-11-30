@@ -29,3 +29,11 @@ api/subject- for get and post methods for subject
 /api/question - for get and post methods for question
 
 /api/question /<int:id>-for put and delete methods for question
+
+
+installation guide :
+download the project folder as zip 
+Extract the ZIP file and navigate to the project folder.
+install requirements (present in in requirements.txt file)
+run the app.py present in the backend folder of project floder
+run the celery worker and beat(for backend jobs )
